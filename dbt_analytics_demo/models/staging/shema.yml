@@ -1,0 +1,236 @@
+version: 2
+
+# =============================
+# SOURCES (dados brutos e externos)
+# =============================
+sources:
+  - name: raw_data
+    schema: raw_data
+    description: "Dados brutos replicados diretamente de sistemas externos, sem transformação."
+
+    tables:
+      - name: customers
+        description: "Tabela original contendo os dados de clientes do sistema transacional."
+        columns:
+          - name: id
+            description: "Identificador único do cliente."
+            tests: [not_null, unique]
+          - name: full_name
+            description: "Nome completo do cliente conforme cadastro."
+          - name: email
+            description: "Endereço de e-mail informado pelo cliente."
+          - name: created_at
+            description: "Data de criação do registro do cliente."
+          - name: is_active
+            description: "Flag indicando se o cliente está ativo."
+
+      - name: orders
+        description: "Pedidos realizados pelos clientes. Cada linha representa um pedido."
+        columns:
+          - name: id
+            description: "ID único do pedido."
+            tests: [not_null, unique]
+          - name: customer_id
+            description: "ID do cliente que realizou o pedido."
+          - name: order_date
+            description: "Data do pedido."
+          - name: status
+            description: "Status atual do pedido: delivered, cancelled, pending."
+          - name: total_value
+            description: "Valor total do pedido."
+
+      - name: payments
+        description: "Pagamentos realizados pelos clientes relacionados a pedidos."
+        columns:
+          - name: id
+            description: "ID do pagamento."
+            tests: [not_null, unique]
+          - name: order_id
+            description: "Pedido ao qual o pagamento está associado."
+          - name: payment_date
+            description: "Data em que o pagamento foi efetuado."
+          - name: amount
+            description: "Valor pago."
+          - name: payment_method
+            description: "Forma de pagamento: credit_card, boleto."
+
+      - name: products
+        description: "Tabela de catálogo de produtos disponíveis para venda."
+        columns:
+          - name: id
+            description: "Identificador do produto."
+            tests: [not_null, unique]
+          - name: name
+            description: "Nome do produto."
+          - name: category
+            description: "Categoria do produto (ex: Eletrônicos, Móveis)."
+          - name: price
+            description: "Preço de venda do produto."
+
+  - name: public
+    schema: public
+    description: "Tabelas auxiliares carregadas manualmente por script Python ou seed."
+
+    tables:
+      - name: metas_vendas
+        description: "Metas mensais atribuídas a cada vendedor."
+        columns:
+          - name: vendedor_id
+            description: "Identificador do vendedor."
+            tests: [not_null]
+          - name: mes
+            description: "Mês da meta no formato YYYY-MM."
+            tests: [not_null]
+          - name: meta_vendas
+            description: "Valor da meta de vendas em reais."
+            tests: [not_null]
+
+      - name: filiais
+        description: "Cadastro de filiais da empresa com estado de localização."
+        columns:
+          - name: id
+            description: "ID único da filial."
+            tests: [not_null, unique]
+          - name: nome
+            description: "Nome da filial."
+          - name: estado
+            description: "Estado (UF) onde a filial está localizada."
+
+# =============================
+# MODELOS DE STAGING COM TESTES ESTENDIDOS
+# =============================
+models:
+  - name: stg_customers
+    description: "Modelo intermediário que trata e padroniza os dados de clientes."
+    columns:
+      - name: customer_id
+        description: "ID do cliente (renomeado de id)."
+        tests: [not_null, unique]
+      - name: full_name
+        description: "Nome completo do cliente."
+      - name: email
+        description: "E-mail padronizado em minúsculo."
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "email ~* '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$'"
+              config:
+                severity: error
+                where: "email IS NOT NULL"
+      - name: created_at
+        description: "Data de criação do cliente."
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "created_at <= CURRENT_DATE"
+              config:
+                severity: warn
+      - name: is_active
+        description: "Flag de cliente ativo."
+        tests:
+          - accepted_values:
+              values: [true, false]
+
+  - name: stg_orders
+    description: "Modelo intermediário para pedidos, com tratamento de tipos e padronizações."
+    columns:
+      - name: order_id
+        description: "ID do pedido."
+        tests: [not_null, unique]
+      - name: customer_id
+        description: "Cliente associado ao pedido."
+      - name: order_date
+        description: "Data em que o pedido foi realizado."
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "order_date <= CURRENT_DATE"
+              config:
+                severity: warn
+      - name: status
+        description: "Status atual do pedido."
+        tests:
+          - accepted_values:
+              values: ['delivered', 'cancelled', 'pending']
+      - name: total_value
+        description: "Valor total do pedido convertido para NUMERIC."
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "total_value >= 0"
+
+  - name: stg_payments
+    description: "Modelo de staging para pagamentos, com padronização de nomes e tipos."
+    columns:
+      - name: payment_id
+        description: "ID do pagamento."
+        tests: [not_null, unique]
+      - name: order_id
+        description: "Pedido ao qual o pagamento pertence."
+      - name: payment_date
+        description: "Data do pagamento."
+      - name: amount
+        description: "Valor pago."
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: "amount >= 0"
+      - name: payment_method
+        description: "Meio de pagamento utilizado."
+        tests:
+          - accepted_values:
+              values: ['credit_card', 'boleto']
+
+  - name: stg_products
+    description: "Padronização de nomes e tipos para os produtos vendidos."
+    columns:
+      - name: product_id
+        description: "Identificador único do produto."
+        tests: [not_null, unique]
+      - name: product_name
+        description: "Nome comercial do produto."
+      - name: category
+        description: "Categoria do produto."
+      - name: price
+        description: "Preço de venda padronizado."
+        tests: [not_null, dbt_utils.expression_is_true]
+
+  - name: stg_vendedores
+    description: "Seed contendo os dados de vendedores."
+    columns:
+      - name: vendedor_id
+        description: "Identificador do vendedor."
+        tests: [not_null, unique]
+      - name: vendedor_nome
+        description: "Nome completo do vendedor."
+      - name: vendedor_email
+        description: "E-mail de contato do vendedor."
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: "vendedor_email ~* '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$'"
+      - name: filial_id
+        description: "Filial onde o vendedor está alocado."
+        tests: [not_null]
+
+  - name: stg_metas
+    description: "Tratamento das metas de vendas."
+    columns:
+      - name: vendedor_id
+        description: "Identificador do vendedor."
+        tests: [not_null]
+      - name: mes
+        description: "Mês da meta no formato YYYY-MM."
+        tests: [not_null]
+      - name: meta_vendas
+        description: "Valor da meta."
+        tests: [not_null, dbt_utils.expression_is_true]
+
+  - name: stg_filiais
+    description: "Modelo de staging para as filiais da empresa."
+    columns:
+      - name: filial_id
+        description: "ID único da filial (renomeado de id)."
+        tests: [not_null, unique]
+      - name: filial_nome
+        description: "Nome da unidade."
+      - name: estado
+        description: "UF da filial."

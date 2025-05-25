@@ -1,0 +1,17 @@
+[
+  {
+    "id": 1,
+    "nome": "Filial São Paulo",
+    "estado": "SP"
+  },
+  {
+    "id": 2,
+    "nome": "Filial Rio de Janeiro",
+    "estado": "RJ"
+  },
+  {
+    "id": 3,
+    "nome": "Filial Belo Horizonte",
+    "estado": "MG"
+  }
+]

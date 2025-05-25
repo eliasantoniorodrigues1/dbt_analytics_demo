@@ -1,0 +1,33 @@
+# Diretórios padrão do DBT
+target/
+dbt_modules/
+dbt_packages/
+
+# Dados locais/sensíveis
+.env
+*.env
+.env.*
+
+# Perfis de conexão (se você usar perfis locais no repositório)
+profiles.yml
+
+# Python cache e ambiente virtual
+__pycache__/
+*.py[cod]
+*.pyo
+venv/
+env/
+.venv/
+
+# Arquivos de log ou temporários
+*.log
+*.tmp
+*.bak
+*.db
+.DS_Store
+
+# Arquivos Jupyter (caso use notebooks para testes)
+.ipynb_checkpoints/
+
+# Arquivos de sistemas operacionais
+Thumbs.db
