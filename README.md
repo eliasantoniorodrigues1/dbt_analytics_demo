@@ -1,130 +1,110 @@
-# dbt_analytics_demo
+# Projeto dbt_analytics_demo
 
-Projeto completo com dbt (Data Build Tool), focado em boas práticas de engenharia analítica, integração de múltiplas fontes de dados e execução automatizada em servidor Linux.
+Este projeto demonstra como utilizar o **dbt** integrado ao **Apache Airflow** usando **Docker**, ideal para pipelines analíticos reproduzíveis e automatizados.
 
----
-
-## ⚙️ Tecnologias e ferramentas
-
-- **DBT Core 1.7.x**
-- PostgreSQL (local e remoto)
-- Shell Script (deploy automatizado)
-- Python (para carga auxiliar de dados)
-- CSV, Excel e JSON como fontes simuladas
+## 🔧 Tecnologias Utilizadas
+- [dbt (Data Build Tool)](https://www.getdbt.com/)
+- [Apache Airflow](https://airflow.apache.org/)
+- [Docker](https://www.docker.com/)
+- PostgreSQL
+- Python 3.11
 
 ---
 
-## 📁 Estrutura do Projeto
+## 📁 Estrutura de Pastas
 
 ```
-dbt_analytics_demo/
+📦 dbt_analytics_demo/
+├── dbt_project.yml
 ├── models/
-│   ├── staging/           # Camada de preparação (ephemeral)
-│   ├── marts/             # Camada analítica (view/table/incremental)
-├── macros/                # Macros reutilizáveis em Jinja
-├── snapshots/             # Snapshots de mudança histórica
-├── seeds/                 # Dados estáticos (vendedores.csv)
-├── extras/                # Fontes externas (metas.xlsx, filiais.json)
-├── scripts/               # Script de carga auxiliar
-├── requirements.txt
-└── dbt_project.yml
+├── seeds/
+├── macros/
+├── tests/
+├── target/                   # gerado pelo dbt build
+├── profiles.yml              # opcional, se necessário
+├── Docker/
+│   ├── docker-compose.yml    # stack do Airflow com Postgres
+│   ├── .env                  # variáveis de ambiente (emails, senhas, etc)
+│   ├── dags/
+│   │   ├── dbt_run_dag.py
+│   │   ├── dbt_test_dag.py
+│   │   └── outros_dags.py
+│   ├── plugins/              # plugins customizados (opcional)
+│   ├── logs/                 # gerado pelo Airflow
+│   └── requirements.txt      # opcional: dependências extras
 ```
 
 ---
 
-## 🚀 Como executar localmente
-
-### 1. Clone o projeto e instale o ambiente
+## 🚀 Como Rodar com Docker
 
 ```bash
-git clone git@seu_repo/dbt_analytics_demo.git
-cd dbt_analytics_demo
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+# Vá até o diretório Docker
+cd Docker
+
+# Inicie os serviços do Airflow
+docker compose up airflow-init
+
+# Depois de inicializado, suba o ambiente completo
+docker compose up -d
 ```
 
-### 2. Configure seu `profiles.yml`
+Acesse a interface do Airflow em: [http://localhost:8080](http://localhost:8080)
 
-Arquivo padrão do DBT (em `~/.dbt/profiles.yml`):
-
-```yaml
-dbt_analytics_demo:
-  target: dev
-  outputs:
-    dev:
-      type: postgres
-      host: localhost
-      user: postgres
-      password: sua_senha
-      port: 5432
-      dbname: dbt_demo
-      schema: public
-      threads: 4
+Usuário padrão:
+```
+Login: admin@example.com
+Senha: admin
 ```
 
-### 3. Carregue os dados
+---
+
+## 📦 Comandos úteis dbt (dentro do container)
 
 ```bash
-dbt seed                      # Carrega os seeds CSV
-python scripts/load_extras.py  # Carrega Excel e JSON no banco
+# Acesse o container do scheduler ou webserver
+docker exec -it docker-scheduler-1 bash
+
+# Execute comandos dbt dentro do container
+cd /opt/airflow/dbt_analytics_demo
+
+# Rodar tudo
+$ dbt build
+
+# Rodar testes
+$ dbt test
+
+# Gerar documentação
+$ dbt docs generate
 ```
 
-### 4. Execute o pipeline DBT
+---
 
-```bash
-dbt run                       # Executa os modelos
-dbt test                      # Roda testes automáticos
-dbt docs generate && dbt docs serve  # Gera a documentação
+## 📧 Configuração de e-mails no .env
+
+```
+EMAIL_SENDER=seuemail@gmail.com
+EMAIL_RECEIVER=seuemail@gmail.com
+AIRFLOW_ADMIN_EMAIL=admin@example.com
+AIRFLOW_ADMIN_PASSWORD=admin
+AIRFLOW__CORE__FERNET_KEY=gerado_com_fernet
 ```
 
 ---
 
-## ⚡ Automação com Git e post-receive
+## 🧪 DAGs disponíveis
 
-- Repositório bare: `/home/usuario/repos/dbt_analytics_demo.git`
-- Working directory: `/home/usuario/projetos/dbt_analytics_demo`
-- `post-receive`:
-  - Faz o `checkout` automático
-  - Ativa ou cria o `venv`
-  - Instala pacotes via `requirements.txt`
-  - Executa `dbt run`, `test`, `docs`
+- `dbt_run_dag`: Executa `dbt build` e notifica por e-mail.
+- `dbt_test_dag`: Executa `dbt test` e notifica por e-mail.
 
 ---
 
-## ✅ Funcionalidades implementadas
+## 🧠 Dicas finais
 
-- [x] Seeds CSV (vendedores)
-- [x] Leitura de Excel (.xlsx) com pandas
-- [x] Leitura de JSON com Python
-- [x] Camada staging com materialização `ephemeral`
-- [x] Marts com `view`, `table` e `incremental`
-- [x] Snapshots de alterações (ex: status de clientes)
-- [x] Macros reutilizáveis em Jinja
-- [x] Testes automatizados
-- [x] Deploy automático com Git + Bash
-- [x] Execução agendada com cron
+- Para reiniciar tudo: `docker compose down -v`
+- Para resetar Airflow: apagar `postgres-db-volume`
+- Para adicionar novas DAGs: edite ou adicione arquivos na pasta `Docker/dags/`
 
 ---
 
-## 📚 Recursos úteis
-
-- [DBT Docs – Macros](https://docs.getdbt.com/docs/building-a-dbt-project/jinja-macros)
-- [dbt-utils Package](https://github.com/dbt-labs/dbt-utils)
-- [Jinja Filters](https://jinja.palletsprojects.com/en/3.1.x/templates/#list-of-builtin-filters)
-- [Curso gratuito oficial](https://learn.getdbt.com/)
-
----
-
-## ✨ Autor
-
-**Elias Rodrigues (earlog.dev)**  
-Analista de Dados Sênior | Python + SQL | Engenharia de Dados  
-GitHub: [github.com/eliasantoniorodrigues1](https://github.com/eliasantoniorodrigues1)  
-LinkedIn: [linkedin.com/in/ear-345-](https://www.linkedin.com/in/ear-345-/)
-
----
-
-## Licença
-
-MIT
+Para dúvidas ou melhorias, abra uma issue ou contribua com PRs! 🚀

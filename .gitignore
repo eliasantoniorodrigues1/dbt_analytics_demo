@@ -31,3 +31,6 @@ env/
 
 # Arquivos de sistemas operacionais
 Thumbs.db
+
+# Ignora qualquer arquivo que contenha 'copy' no nome, em qualquer pasta
+*copy*
