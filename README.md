@@ -29,7 +29,9 @@ Docker + Docker Compose
 
 dbt_analytics_demo/
 ├── models/
+
 │   ├── staging/           # Camada de preparação (ephemeral)
+
 │   ├── marts/             # Camada analítica (view/table/incremental)
 
 ├── macros/                # Macros reutilizáveis em Jinja
@@ -47,13 +49,21 @@ dbt_analytics_demo/
 ├── dbt_project.yml
 
 ├── Docker/
+
 │   ├── docker-compose.yml
+
 │   ├── .env
+
 │   ├── dags/
+
 │   │   ├── dbt_run_dag.py
+
 │   │   ├── dbt_test_dag.py
+
 │   ├── plugins/
+
 │   ├── logs/               # logs gerados pelo Airflow
+
 │   └── requirements.txt
 
 
