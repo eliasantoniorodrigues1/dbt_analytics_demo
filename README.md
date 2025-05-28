@@ -31,13 +31,21 @@ dbt_analytics_demo/
 ├── models/
 │   ├── staging/           # Camada de preparação (ephemeral)
 │   ├── marts/             # Camada analítica (view/table/incremental)
+
 ├── macros/                # Macros reutilizáveis em Jinja
+
 ├── snapshots/             # Snapshots de mudança histórica
+
 ├── seeds/                 # Dados estáticos (vendedores.csv)
+
 ├── extras/                # Fontes externas (metas.xlsx, filiais.json)
+
 ├── scripts/               # Script de carga auxiliar
+
 ├── requirements.txt
+
 ├── dbt_project.yml
+
 ├── Docker/
 │   ├── docker-compose.yml
 │   ├── .env
